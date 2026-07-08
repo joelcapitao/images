@@ -15,11 +15,17 @@ FROM registry.fedoraproject.org/fedora:44
 
 # podman mount needs this
 RUN mkdir -p /etc/containers/networks
+
+# Copy local osbuild RPMs and create a local repo with higher priority
+COPY osbuild-rpms/ /tmp/osbuild-rpms/
+RUN printf '[osbuild-local]\nname=Local osbuild RPMs\nbaseurl=file:///tmp/osbuild-rpms/\nenabled=1\ngpgcheck=0\npriority=1\n' > /etc/yum.repos.d/osbuild-local.repo
+
 # Fast-track osbuild so we don't depend on the "slow" Fedora release process to implement new features in bib
 RUN dnf install -y dnf-plugins-core \
     && dnf copr enable -y @osbuild/osbuild \
     && dnf install -y libxcrypt-compat wget osbuild osbuild-ostree osbuild-depsolve-dnf osbuild-lvm2 osbuild-virt-deps openssl subscription-manager \
-    && dnf clean all
+    && dnf clean all \
+    && rm -rf /tmp/osbuild-rpms /etc/yum.repos.d/osbuild-local.repo
 
 COPY --from=builder /build/bin/image-builder /usr/bin/
 
