@@ -85,6 +85,11 @@ func (img *BootcDiskImage) InstantiateManifestFromContainers(m *manifest.Manifes
 				ContainerBuildable: true,
 				SELinuxPolicy:      img.OSCustomizations.SELinux,
 				EnsureDirs:         ensureDirs,
+				// Disable SELinux in the "target" pipeline because it runs
+				// without a build pipeline (uses HostTree) and cannot execute
+				// in a VM (no kernel available). The files will be properly
+				// relabeled later by the "build" and "image" pipelines.
+				DisableSELinux: true,
 			})
 		targetBuildPipeline.Checkpoint()
 
@@ -98,6 +103,12 @@ func (img *BootcDiskImage) InstantiateManifestFromContainers(m *manifest.Manifes
 			SELinuxPolicy:      buildPolicy,
 			CopyFilesFrom:      copyFilesFrom,
 			EnsureDirs:         ensureDirs,
+			// Disable SELinux in the "build" pipeline because it runs
+			// without a build pipeline (uses HostTree) and cannot execute
+			// setfiles correctly in rootless/container mode. The files will
+			// be properly relabeled by the "image" pipeline which runs in a
+			// VM with a proper kernel.
+			DisableSELinux: true,
 		})
 
 	buildPipeline.Checkpoint()
